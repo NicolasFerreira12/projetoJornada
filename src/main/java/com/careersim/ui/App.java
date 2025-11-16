@@ -1,18 +1,17 @@
 package com.careersim.ui;
 
 import javafx.animation.KeyFrame;
-import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 
 import java.util.Random;
 
@@ -21,55 +20,59 @@ public class App extends Application
     private int xp = 0;
     private int energia = 100;
     private int gold = 0;
+    private int nivel = 1;
+    private double goldBonus = 1.0;
+    private boolean atingiuCEO = false;
 
     private Label lblStatus;
-    private Label lblXP;
     private Label lblGold;
+    private Label lblCargo;
     private ProgressBar barraEnergia;
+    private ProgressBar barraXP;
 
     private final Random random = new Random();
 
     @Override
     public void start(Stage stage)
     {
-        // ===== LAYOUT PRINCIPAL =====
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(20));
         root.setStyle("-fx-background-color: linear-gradient(to bottom, #1E1E2F, #3A3A58);");
 
-        // ===== TOPO (HUD COM MOEDA E GOLD) =====
+        // TOPO
+
         Image imgMoeda = new Image(getClass().getResourceAsStream("/imagens/moeda.png"));
         ImageView moedaView = new ImageView(imgMoeda);
         moedaView.setFitWidth(32);
         moedaView.setFitHeight(32);
-        moedaView.setPreserveRatio(true);
-        moedaView.setStyle("-fx-background-color: transparent;");
 
         lblGold = new Label(String.valueOf(gold));
         lblGold.setStyle("-fx-font-size: 18px; -fx-text-fill: gold; -fx-font-weight: bold;");
 
-        HBox goldBox = new HBox(8);
-        goldBox.setAlignment(Pos.CENTER_RIGHT);
-        goldBox.getChildren().addAll(moedaView, lblGold);
-        goldBox.setPadding(new Insets(10));
-        Tooltip.install(moedaView, new Tooltip("Gold"));
+        barraXP = new ProgressBar(0);
+        barraXP.setPrefWidth(150);
+        barraXP.setStyle("-fx-accent: #22C55E;");
 
-        root.setTop(goldBox);
-        BorderPane.setAlignment(goldBox, Pos.TOP_RIGHT);
+        lblCargo = new Label("Cargo: Júnior");
+        lblCargo.setStyle("-fx-text-fill: #A5B4FC; -fx-font-size: 14px; -fx-font-weight: bold;");
 
-        // ===== CENTRO (CONTEÚDO PRINCIPAL) =====
-        VBox centro = new VBox(15);
-        centro.setAlignment(Pos.CENTER);
+        HBox topBox = new HBox(15, moedaView, lblGold, barraXP, lblCargo);
+        topBox.setAlignment(Pos.CENTER_RIGHT);
+        topBox.setPadding(new Insets(10));
+
+        root.setTop(topBox);
+        BorderPane.setAlignment(topBox, Pos.TOP_RIGHT);
+
+        // CENTRO
+
+        VBox centerBox = new VBox(15);
+        centerBox.setAlignment(Pos.CENTER);
 
         lblStatus = new Label("Bem-vindo à Jornada do Desenvolvedor!");
-        lblStatus.setStyle("-fx-font-family: 'TT Rounds Neue Trial Light'; -fx-text-fill: white; -fx-font-size: 18px;");
-
-        lblXP = new Label("XP: 0");
-        lblXP.setStyle("-fx-text-fill: #08CB00; -fx-font-weight: bold;");
+        lblStatus.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
 
         barraEnergia = new ProgressBar(energia / 100.0);
         barraEnergia.setPrefWidth(250);
-
         Label lblEnergia = new Label("Energia");
         lblEnergia.setStyle("-fx-text-fill: #22D3EE; -fx-font-weight: bold;");
 
@@ -91,33 +94,34 @@ public class App extends Application
         HBox botoes = new HBox(10, btnEstudar, btnTrabalhar, btnLoja, btnCafe);
         botoes.setAlignment(Pos.CENTER);
 
-        centro.getChildren().addAll(lblStatus, lblXP, lblEnergia, barraEnergia, botoes);
-        root.setCenter(centro);
+        centerBox.getChildren().addAll(lblStatus, lblEnergia, barraEnergia, botoes);
+        root.setCenter(centerBox);
 
-        // ===== CENA E STAGE =====
         Scene scene = new Scene(root, 800, 600);
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/imagens/logoJanela.png")));
         stage.setTitle("Jornada do Desenvolvedor");
         stage.setScene(scene);
         stage.show();
 
-        // ===== REGENERAÇÃO AUTOMÁTICA =====
         iniciarRegeneracaoDeEnergia();
     }
 
-    // ===== LÓGICA DO JOGO =====
+    // Lógica do jogo
+
     private void estudar()
     {
-        if (energia >= 10)
+        if (energia >= 15)
         {
             energia -= 10;
             int ganho = 10 + random.nextInt(10);
             xp += ganho;
+
             lblStatus.setText("Você estudou e ganhou +" + ganho + " XP!");
+            verificarNivel();
         }
         else
         {
-            lblStatus.setText("😴 Você está cansado demais para estudar!");
+            lblStatus.setText("Você está cansado demais para estudar!");
         }
         atualizarInterface();
     }
@@ -127,24 +131,44 @@ public class App extends Application
         if (energia >= 20)
         {
             energia -= 20;
-            int ganhoXP = 25 + random.nextInt(15);
-            int ganhoGold = 5 + random.nextInt(10);
+
+            int ganhoXP = 1 + random.nextInt(5);
+            int ganhoGoldBase;
+
+            switch (nivel)
+            {
+                case 1: // Júnior
+                    ganhoGoldBase = 5 + random.nextInt(6); // 5–10
+                    break;
+                case 2: // Pleno
+                    ganhoGoldBase = 10 + random.nextInt(11); // 10–20
+                    break;
+                case 3: // Sênior
+                    ganhoGoldBase = 20 + random.nextInt(16); // 20–35
+                    break;
+                default: // CEO ou acima
+                    ganhoGoldBase = 40 + random.nextInt(21); // 40–60
+                    break;
+            }
+
+            int ganhoGold = (int) (ganhoGoldBase * goldBonus);
             xp += ganhoXP;
             gold += ganhoGold;
-            lblStatus.setText("Você completou um projeto e ganhou +" + ganhoXP + " XP e +" + ganhoGold + " gold!");
 
-            animarLabelGold(); // 💰 anima o label sempre que ganha moedas
+            lblStatus.setText("Você completou um projeto e ganhou +" + ganhoXP + " XP e +" + ganhoGold + " gold!");
+            verificarNivel();
         }
         else
         {
-            lblStatus.setText("😫 Sem energia! Talvez um café ajude...");
+            lblStatus.setText("Sem energia! Talvez um café ajude.");
         }
         atualizarInterface();
     }
 
+
     private void abrirLoja()
     {
-        lblStatus.setText("🛒 A loja será implementada futuramente!");
+        lblStatus.setText("loja será implementada futuramente!");
     }
 
     private void tomarCafe()
@@ -152,18 +176,51 @@ public class App extends Application
         if (energia < 100)
         {
             energia = Math.min(100, energia + 30);
-            lblStatus.setText("☕ Você tomou um café e se sente renovado!");
+            lblStatus.setText("Você tomou um café e se sente renovado!");
         }
         else
         {
-            lblStatus.setText("😎 Energia cheia! Mas nunca é tarde para outro café...");
+            lblStatus.setText("Energia cheia!");
         }
         atualizarInterface();
     }
 
+    // Sistema de nível
+
+    private void verificarNivel()
+    {
+        if (atingiuCEO)
+        {
+            return;
+        }
+
+        while (xp >= 100 && !atingiuCEO)
+        {
+            xp -= 100;
+            nivel++;
+
+            if (nivel == 2)
+                lblCargo.setText("Cargo: Pleno");
+            else if (nivel == 3)
+                lblCargo.setText("Cargo: Sênior");
+            else if (nivel >= 4)
+            {
+                lblCargo.setText("Cargo: CEO");
+                atingiuCEO = true;
+                xp = 100; // barra cheia
+                lblStatus.setText("Você atingiu o topo da carreira: CEO!");
+                break;
+            }
+
+            goldBonus *= 1.2;
+            lblStatus.setText("Parabéns! Você foi promovido a " + lblCargo.getText().replace("Cargo: ", "") + "!");
+        }
+    }
+
     private void iniciarRegeneracaoDeEnergia()
     {
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(2), e -> {
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(2), e ->
+        {
             if (energia < 100)
             {
                 energia = Math.min(energia + 2, 100);
@@ -176,23 +233,9 @@ public class App extends Application
 
     private void atualizarInterface()
     {
-        lblXP.setText("XP: " + xp);
         lblGold.setText(String.valueOf(gold));
         barraEnergia.setProgress(energia / 100.0);
-    }
-
-    // ===== ANIMAÇÃO DO LABEL DE GOLD =====
-
-    private void animarLabelGold()
-    {
-        ScaleTransition scale = new ScaleTransition(Duration.millis(150), lblGold);
-        scale.setFromX(1.0);
-        scale.setFromY(1.0);
-        scale.setToX(1.4);
-        scale.setToY(1.4);
-        scale.setAutoReverse(true);
-        scale.setCycleCount(2);
-        scale.play();
+        barraXP.setProgress(Math.min(xp / 100.0, 1.0)); // trava em 100%
     }
 
     private void estilizarBotao(Button btn, String cor)
