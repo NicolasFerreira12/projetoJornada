@@ -3,25 +3,23 @@ package com.careersim.model;
 public class Desafio
 {
     private String descricao;
-    private int impactoEmXP;
-    private int impactoFinanceiro;
+    private int xpGanho;
+    private int energiaPerdida;
 
-    public Desafio(String descricao, int impactoEmXP, int impactoFinanceiro)
+    public Desafio(String descricao, int xpGanho, int energiaPerdida)
     {
         this.descricao = descricao;
-        this.impactoEmXP = impactoEmXP;
-        this.impactoFinanceiro = impactoFinanceiro;
+        this.xpGanho = xpGanho;
+        this.energiaPerdida = energiaPerdida;
     }
 
-    public void aplicarConsequencia(Desenvolvedor dev)
+    public void enfrentar(Desenvolvedor dev)
     {
-        dev.setExperiencia(Math.max(0, dev.getExperiencia() - impactoEmXP));
-        dev.setGold(Math.max(0, dev.getGold() - impactoFinanceiro));
+        dev.setExperiencia(dev.getExperiencia() + xpGanho);
+        dev.setEnergia(Math.max(dev.getEnergia() - energiaPerdida, 0));
+
+        dev.subirDeCargo();
     }
 
-    @Override
-    public String toString()
-    {
-        return descricao + " (Impacto XP: -" + impactoEmXP + ", Gold: -" + impactoFinanceiro + ")";
-    }
+    public String getDescricao() { return descricao; }
 }
