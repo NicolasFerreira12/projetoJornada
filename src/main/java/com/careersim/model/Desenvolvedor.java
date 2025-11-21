@@ -61,13 +61,49 @@ public class Desenvolvedor
     }
 
     // Getters e setters
-    public String getNome() { return nome; }
-    public String getNivel() { return nivel; }
-    public int getExperiencia() { return experiencia; }
-    public void setExperiencia(int experiencia) { this.experiencia = experiencia; }
-    public int getGold() { return gold; }
-    public void setGold(int gold) { this.gold = gold; }
-    public int getEnergia() { return energia; }
-    public void setEnergia(int energia) { this.energia = energia; }
-    public List<String> getHabilidades() { return habilidades; }
+
+    public String getNome()
+    {
+        return nome;
+    }
+
+    public String getNivel()
+    {
+        return nivel;
+    }
+
+    public int getExperiencia()
+    {
+        return experiencia;
+    }
+
+    public void setExperiencia(int experiencia)
+    {
+        this.experiencia = experiencia;
+    }
+
+    public int getGold()
+    {
+        return gold;
+    }
+
+    public void setGold(int gold)
+    {
+        this.gold = gold;
+    }
+
+    public int getEnergia()
+    {
+        return energia;
+    }
+
+    public void setEnergia(int energia)
+    {
+        this.energia = energia;
+    }
+
+    public List<String> getHabilidades()
+    {
+        return habilidades;
+    }
 }
