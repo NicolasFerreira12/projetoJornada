@@ -1,5 +1,7 @@
 package com.careersim.ui;
 
+import com.careersim.model.Item;
+import com.careersim.shop.Loja;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -13,12 +15,14 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.List;
 import java.util.Random;
 
 public class App extends Application
 {
     private int xp = 0;
     private int energia = 100;
+    private int energiaMaxima = 100;
     private int gold = 0;
     private int nivel = 1;
     private double goldBonus = 1.0;
@@ -31,6 +35,7 @@ public class App extends Application
     private ProgressBar barraXP;
 
     private final Random random = new Random();
+    private Loja loja = new Loja();
 
     @Override
     public void start(Stage stage)
@@ -165,18 +170,161 @@ public class App extends Application
         atualizarInterface();
     }
 
-
     private void abrirLoja()
     {
-        lblStatus.setText("loja será implementada futuramente!");
+        Stage stageLoja = new Stage();
+        stageLoja.setTitle("Loja");
+
+        VBox root = new VBox(15);
+        root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: linear-gradient(to bottom, #1E1E2F, #3A3A58);");
+
+        Label titulo = new Label("-- LOJA --");
+        titulo.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #F59E0B;");
+
+        Label saldo = new Label("Seu Gold: " + gold);
+        saldo.setStyle("-fx-font-size: 18px; -fx-text-fill: gold; -fx-font-weight: bold;");
+
+        // Pega apenas os itens disponíveis para este jogador
+        List<Item> itensDisponiveis = loja.getItensDisponiveis(this);
+
+        ListView<Item> listaItens = new ListView<>();
+        listaItens.getItems().addAll(itensDisponiveis);
+        listaItens.setPrefHeight(300);
+        listaItens.setStyle("-fx-background-color: #2D2D44; -fx-border-color: #4A4A6A; -fx-control-inner-background: #2D2D44;");
+
+        // Customizar células da lista - VERSÃO CORRIGIDA
+
+        listaItens.setCellFactory(param -> new ListCell<Item>() {
+            @Override
+            protected void updateItem(Item item, boolean empty)
+            {
+                super.updateItem(item, empty);
+                if (empty || item == null)
+                {
+                    setText(null);
+                    setGraphic(null);
+                    setStyle("-fx-background-color: transparent;");
+                } else
+                {
+                    // Criar o texto com quebra de linha
+
+                    String textoCompleto = item.toString() + "\n   " + item.getDescricao();
+                    setText(textoCompleto);
+                    setGraphic(null);
+                    setStyle("-fx-text-fill: white; " +
+                            "-fx-font-size: 13px; " +
+                            "-fx-padding: 10; " +
+                            "-fx-background-color: #2D2D44; " +
+                            "-fx-border-color: #4A4A6A; " +
+                            "-fx-border-width: 0 0 1 0;");
+
+                    // Estilo quando passar o mouse
+
+                    setOnMouseEntered(e -> {
+                        if (!isEmpty())
+                        {
+                            setStyle("-fx-text-fill: white; " +
+                                    "-fx-font-size: 13px; " +
+                                    "-fx-padding: 10; " +
+                                    "-fx-background-color: #3A3A58; " +
+                                    "-fx-border-color: #4A4A6A; " +
+                                    "-fx-border-width: 0 0 1 0;");
+                        }
+                    });
+
+                    setOnMouseExited(e -> {
+                        if (!isEmpty() && !isSelected())
+                        {
+                            setStyle("-fx-text-fill: white; " +
+                                    "-fx-font-size: 13px; " +
+                                    "-fx-padding: 10; " +
+                                    "-fx-background-color: #2D2D44; " +
+                                    "-fx-border-color: #4A4A6A; " +
+                                    "-fx-border-width: 0 0 1 0;");
+                        }
+                    });
+                }
+            }
+        });
+
+        Label lblDescricao = new Label("Selecione um item para ver os detalhes");
+        lblDescricao.setStyle("-fx-text-fill: #A5B4FC; -fx-font-size: 14px;");
+        lblDescricao.setWrapText(true);
+        lblDescricao.setMaxWidth(550);
+
+        Button btnComprar = new Button("Comprar");
+        estilizarBotao(btnComprar, "#22C55E");
+        btnComprar.setDisable(true);
+
+        Button btnFechar = new Button("Fechar");
+        estilizarBotao(btnFechar, "#EF4444");
+
+        // Quando selecionar um item
+
+        listaItens.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                lblDescricao.setText("📝 " + newVal.getDescricao() +
+                        "\nPreço: " + newVal.getPreco() + " gold");
+                btnComprar.setDisable(gold < newVal.getPreco());
+            }
+        });
+
+        // Ao clicar em comprar
+
+        btnComprar.setOnAction(e -> {
+            Item itemSelecionado = listaItens.getSelectionModel().getSelectedItem();
+
+            if (itemSelecionado != null && gold >= itemSelecionado.getPreco())
+            {
+                gold -= itemSelecionado.getPreco();
+                String mensagem = itemSelecionado.usar(this);
+
+                lblStatus.setText(mensagem);
+                saldo.setText("Seu Gold: " + gold);
+                atualizarInterface();
+
+                // Atualiza a lista de itens (caso o Easter Egg tenha aparecido/sumido)
+
+                List<Item> novosItens = loja.getItensDisponiveis(this);
+                listaItens.getItems().clear();
+                listaItens.getItems().addAll(novosItens);
+
+                // Atualizar botão de comprar
+
+                if (itemSelecionado != null)
+                {
+                    btnComprar.setDisable(gold < itemSelecionado.getPreco());
+                }
+
+                // Mostrar confirmação
+
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Compra realizada!");
+                alert.setHeaderText(null);
+                alert.setContentText(mensagem);
+                alert.showAndWait();
+            }
+        });
+
+        btnFechar.setOnAction(e -> stageLoja.close());
+
+        HBox botoes = new HBox(10, btnComprar, btnFechar);
+        botoes.setAlignment(Pos.CENTER);
+
+        root.getChildren().addAll(titulo, saldo, listaItens, lblDescricao, botoes);
+
+        Scene scene = new Scene(root, 600, 500);
+        stageLoja.setScene(scene);
+        stageLoja.show();
     }
 
     private void tomarCafe()
     {
-        if (energia < 100)
+        if (energia < energiaMaxima)
         {
-            energia = Math.min(100, energia + 30);
-            lblStatus.setText("Você tomou um café e se sente renovado!");
+            energia = Math.min(energiaMaxima, energia + 30);
+            lblStatus.setText("Café de testes!");
         }
         else
         {
@@ -221,9 +369,9 @@ public class App extends Application
     {
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(2), e ->
         {
-            if (energia < 100)
+            if (energia < energiaMaxima)
             {
-                energia = Math.min(energia + 2, 100);
+                energia = Math.min(energia + 2, energiaMaxima);
                 atualizarInterface();
             }
         }));
@@ -234,14 +382,75 @@ public class App extends Application
     private void atualizarInterface()
     {
         lblGold.setText(String.valueOf(gold));
-        barraEnergia.setProgress(energia / 100.0);
-        barraXP.setProgress(Math.min(xp / 100.0, 1.0)); // trava em 100%
+        barraEnergia.setProgress(energia / (double) energiaMaxima);
+        barraXP.setProgress(Math.min(xp / 100.0, 1.0));
     }
 
     private void estilizarBotao(Button btn, String cor)
     {
         btn.setStyle("-fx-background-color: " + cor + "; -fx-text-fill: white; -fx-font-weight: bold;");
         btn.setPrefWidth(110);
+    }
+
+    // Getters e Setters
+
+    public int getXp()
+    {
+        return xp;
+    }
+
+    public void setXp(int xp)
+    {
+        this.xp = xp;
+        verificarNivel();
+        atualizarInterface();
+    }
+
+    public int getEnergia()
+    {
+        return energia;
+    }
+
+    public void setEnergia(int energia)
+    {
+        this.energia = Math.min(energiaMaxima, energia);
+        atualizarInterface();
+    }
+
+    public int getEnergiaMaxima()
+    {
+        return energiaMaxima;
+    }
+
+    public void setEnergiaMaxima(int energiaMaxima)
+    {
+        this.energiaMaxima = energiaMaxima;
+    }
+
+    public int getGold()
+    {
+        return gold;
+    }
+
+    public void setGold(int gold)
+    {
+        this.gold = gold;
+        atualizarInterface();
+    }
+
+    public double getGoldBonus()
+    {
+        return goldBonus;
+    }
+
+    public void setGoldBonus(double goldBonus)
+    {
+        this.goldBonus = goldBonus;
+    }
+
+    public boolean isAtingiuCEO()
+    {
+        return atingiuCEO;
     }
 
     public static void main(String[] args)
