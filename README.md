@@ -1,9 +1,3 @@
-# Nicolas Ferreira Bicudo Duarte - 00000851339
-# Leonardo D'Amorim Cireno Gomes - 00000850848
-
-===================================================
-
-# Projeto Final - Programação Orientada a Objetos
 
 **● Descrição:**
 
